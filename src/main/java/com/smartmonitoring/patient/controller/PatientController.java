@@ -3,6 +3,9 @@ package com.smartmonitoring.patient.controller;
 import com.smartmonitoring.patient.dto.ResponseStructure;
 import com.smartmonitoring.patient.model.Patient;
 import com.smartmonitoring.patient.service.PatientService;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,5 +36,10 @@ public class PatientController {
 
         return patientService.getPatientCurrentStatus(id);
     }
+    @GetMapping
+    public ResponseEntity<ResponseStructure<List<Patient>>> getAllPatients() {
+        return patientService.getAllPatients();
+    }
+
 
 }

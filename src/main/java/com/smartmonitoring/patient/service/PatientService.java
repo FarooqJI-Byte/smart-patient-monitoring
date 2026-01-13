@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class PatientService {
@@ -45,7 +46,7 @@ public class PatientService {
 
         ResponseStructure<Patient> response = new ResponseStructure<>();
         response.setStatus(HttpStatus.CREATED.value());
-        response.setMessage("Patient created successfully");
+        response.setMessage("Patient admitted successfully");
         response.setData(saved);
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -84,6 +85,22 @@ public class PatientService {
 
         return ResponseEntity.ok(response);
     }
+    public ResponseEntity<ResponseStructure<List<Patient>>> getAllPatients() {
+
+        List<Patient> patients = patientRepository.findAll();
+
+        if (patients.isEmpty()) {
+            throw new NoDataFoundException("No patients available");
+        }
+
+        ResponseStructure<List<Patient>> response = new ResponseStructure<>();
+        response.setStatus(200);
+        response.setMessage("Patients fetched successfully");
+        response.setData(patients);
+
+        return ResponseEntity.ok(response);
+    }
+
 
 
 }
