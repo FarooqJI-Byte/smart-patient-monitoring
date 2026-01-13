@@ -60,4 +60,42 @@ public class AlertService {
 
         return ResponseEntity.ok(response);
     }
+    public ResponseEntity<ResponseStructure<Alert>> acknowledgeAlert(Long alertId) {
+
+        Alert alert = alertRepository.findById(alertId)
+                .orElseThrow(() -> new RuntimeException("Alert not found with id: " + alertId));
+
+        if (alert.isAcknowledged()) {
+            throw new IllegalArgumentException("Alert already acknowledged");
+        }
+
+        alert.setAcknowledged(true);
+        alert.setAcknowledgedAt(LocalDateTime.now());
+
+        Alert saved = alertRepository.save(alert);
+
+        ResponseStructure<Alert> response = new ResponseStructure<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Alert acknowledged successfully");
+        response.setData(saved);
+
+        return ResponseEntity.ok(response);
+    }
+    public ResponseEntity<ResponseStructure<List<Alert>>> getEscalatedAlerts() {
+
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
+
+        List<Alert> escalatedAlerts = alertRepository
+                .findBySeverityAndAcknowledgedFalseAndCreatedAtBefore(
+                        SeverityLevel.CRITICAL, threshold);
+
+        ResponseStructure<List<Alert>> response = new ResponseStructure<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Escalated alerts fetched successfully");
+        response.setData(escalatedAlerts);
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

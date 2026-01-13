@@ -19,8 +19,19 @@ public class Alert {
     private LocalDateTime createdAt;
 
     private boolean acknowledged;
+    
+    private LocalDateTime acknowledgedAt;
 
-    @ManyToOne
+
+    public LocalDateTime getAcknowledgedAt() {
+		return acknowledgedAt;
+	}
+
+	public void setAcknowledgedAt(LocalDateTime acknowledgedAt) {
+		this.acknowledgedAt = acknowledgedAt;
+	}
+
+	@ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 

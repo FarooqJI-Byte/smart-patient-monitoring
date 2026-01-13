@@ -27,4 +27,19 @@ public class AlertController {
 
         return alertService.getAlertsByPatient(patientId);
     }
+ // Acknowledge an alert
+    @PutMapping("/acknowledge/{alertId}")
+    public ResponseEntity<ResponseStructure<Alert>> acknowledgeAlert(
+            @PathVariable Long alertId) {
+
+        return alertService.acknowledgeAlert(alertId);
+    }
+
+    // Get escalated alerts
+    @GetMapping("/escalated")
+    public ResponseEntity<ResponseStructure<List<Alert>>> getEscalatedAlerts() {
+
+        return alertService.getEscalatedAlerts();
+    }
+
 }
