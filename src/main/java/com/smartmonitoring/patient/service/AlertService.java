@@ -1,10 +1,16 @@
 package com.smartmonitoring.patient.service;
 
-import com.smartmonitoring.patient.model.*;
+import com.smartmonitoring.patient.dto.ResponseStructure;
+import com.smartmonitoring.patient.model.Alert;
+import com.smartmonitoring.patient.model.Patient;
+import com.smartmonitoring.patient.model.SeverityLevel;
 import com.smartmonitoring.patient.repository.AlertRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class AlertService {
@@ -15,6 +21,10 @@ public class AlertService {
         this.alertRepository = alertRepository;
     }
 
+    /**
+     * INTERNAL USE
+     * Called from VitalsService whenever vitals are recorded
+     */
     public Alert createAlert(Patient patient, SeverityLevel severity) {
 
         Alert alert = new Alert();
@@ -23,14 +33,31 @@ public class AlertService {
         alert.setCreatedAt(LocalDateTime.now());
         alert.setAcknowledged(false);
 
+        // message based on severity
         if (severity == SeverityLevel.CRITICAL) {
             alert.setMessage("CRITICAL alert: Immediate medical attention required");
         } else if (severity == SeverityLevel.WARNING) {
-            alert.setMessage("Warning alert: Patient vitals outside normal range");
+            alert.setMessage("WARNING alert: Patient vitals outside normal range");
         } else {
-            alert.setMessage("Patient vitals are normal");
+            alert.setMessage("Vitals are normal");
         }
 
         return alertRepository.save(alert);
+    }
+
+    /**
+     * API USE
+     * Fetch all alerts for a patient
+     */
+    public ResponseEntity<ResponseStructure<List<Alert>>> getAlertsByPatient(Long patientId) {
+
+        List<Alert> alerts = alertRepository.findByPatientId(patientId);
+
+        ResponseStructure<List<Alert>> response = new ResponseStructure<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Alerts fetched successfully");
+        response.setData(alerts);
+
+        return ResponseEntity.ok(response);
     }
 }
