@@ -12,26 +12,32 @@ public class VitalsService {
 
     private final VitalsRepository vitalsRepository;
     private final PatientRepository patientRepository;
+    private final AlertService alertService;
 
     public VitalsService(VitalsRepository vitalsRepository,
-                         PatientRepository patientRepository) {
-        this.vitalsRepository = vitalsRepository;
-        this.patientRepository = patientRepository;
+            PatientRepository patientRepository,
+            AlertService alertService) {
+    	this.vitalsRepository = vitalsRepository;
+    	this.patientRepository = patientRepository;
+    	this.alertService = alertService;
     }
 
     // Record vitals & return severity
     public SeverityLevel recordVitals(Long patientId, Vitals vitals) {
-
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
         vitals.setPatient(patient);
         vitals.setRecordedAt(LocalDateTime.now());
-
         vitalsRepository.save(vitals);
 
-        return evaluateSeverity(vitals);
+        SeverityLevel severity = evaluateSeverity(vitals);
+
+        alertService.createAlert(patient, severity);
+
+        return severity;
     }
+
 
     // RULE ENGINE (Heart of project)
     private SeverityLevel evaluateSeverity(Vitals v) {
