@@ -1,7 +1,12 @@
 package com.smartmonitoring.patient.service;
 
 import com.smartmonitoring.patient.dto.ResponseStructure;
+import com.smartmonitoring.patient.exception.NoDataFoundException;
+import com.smartmonitoring.patient.exception.PatientNotFoundException;
+import com.smartmonitoring.patient.model.Alert;
 import com.smartmonitoring.patient.model.Patient;
+import com.smartmonitoring.patient.model.SeverityLevel;
+import com.smartmonitoring.patient.repository.AlertRepository;
 import com.smartmonitoring.patient.repository.PatientRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +18,14 @@ import java.time.LocalDate;
 public class PatientService {
 
     private final PatientRepository patientRepository;
+    private final AlertRepository alertRepository;
 
-    public PatientService(PatientRepository patientRepository) {
+    public PatientService(PatientRepository patientRepository,
+                          AlertRepository alertRepository) {
         this.patientRepository = patientRepository;
+        this.alertRepository = alertRepository;
     }
+
 
     // CREATE
     public ResponseEntity<ResponseStructure<Patient>> createPatient(Patient patient) {
@@ -55,4 +64,26 @@ public class PatientService {
 
         return ResponseEntity.ok(response);
     }
+    public ResponseEntity<ResponseStructure<String>> getPatientCurrentStatus(Long patientId) {
+
+        patientRepository.findById(patientId)
+                .orElseThrow(() ->
+                        new PatientNotFoundException("Patient not found with id: " + patientId));
+
+        Alert latestAlert =
+                alertRepository.findTopByPatientIdOrderByCreatedAtDesc(patientId);
+
+        if (latestAlert == null) {
+            throw new NoDataFoundException("No alerts found for this patient");
+        }
+
+        ResponseStructure<String> response = new ResponseStructure<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Patient current status fetched successfully");
+        response.setData(latestAlert.getSeverity().name());
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

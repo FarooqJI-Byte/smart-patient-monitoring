@@ -9,48 +9,53 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * Handles resource not found errors
-     */
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ResponseStructure<String>> handleNotFound(
-            ResourceNotFoundException ex) {
+        @ExceptionHandler(PatientNotFoundException.class)
+        public ResponseEntity<ResponseStructure<String>> handlePatientNotFound(
+                PatientNotFoundException ex) {
 
-        ResponseStructure<String> response = new ResponseStructure<>();
-        response.setStatus(HttpStatus.NOT_FOUND.value());
-        response.setMessage(ex.getMessage());
-        response.setData(null);
+            ResponseStructure<String> response = new ResponseStructure<>();
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage(ex.getMessage());
+            response.setData(null);
 
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        }
+
+        @ExceptionHandler(NoDataFoundException.class)
+        public ResponseEntity<ResponseStructure<String>> handleNoData(
+                NoDataFoundException ex) {
+
+            ResponseStructure<String> response = new ResponseStructure<>();
+            response.setStatus(HttpStatus.NO_CONTENT.value());
+            response.setMessage(ex.getMessage());
+            response.setData(null);
+
+            return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
+        }
+
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<ResponseStructure<String>> handleBadRequest(
+                IllegalArgumentException ex) {
+
+            ResponseStructure<String> response = new ResponseStructure<>();
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(ex.getMessage());
+            response.setData(null);
+
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        // 🚨 ONLY for real bugs
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ResponseStructure<String>> handleServerError(
+                Exception ex) {
+
+            ResponseStructure<String> response = new ResponseStructure<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Internal server error. Please contact support.");
+            response.setData(null);
+
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    /**
-     * Handles bad request / validation errors
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ResponseStructure<String>> handleBadRequest(
-            IllegalArgumentException ex) {
-
-        ResponseStructure<String> response = new ResponseStructure<>();
-        response.setStatus(HttpStatus.BAD_REQUEST.value());
-        response.setMessage(ex.getMessage());
-        response.setData(null);
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Handles all unhandled exceptions
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ResponseStructure<String>> handleGenericException(
-            Exception ex) {
-
-        ResponseStructure<String> response = new ResponseStructure<>();
-        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.setMessage("An unexpected error occurred");
-        response.setData(null);
-
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-}

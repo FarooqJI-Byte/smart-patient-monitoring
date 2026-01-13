@@ -27,4 +27,11 @@ public class PatientController {
             @PathVariable Long id) {
         return patientService.getPatientById(id);
     }
+    @GetMapping("/{id}/status")
+    public ResponseEntity<ResponseStructure<String>> getPatientStatus(
+            @PathVariable Long id) {
+
+        return patientService.getPatientCurrentStatus(id);
+    }
+
 }

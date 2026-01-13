@@ -14,5 +14,7 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     List<Alert> findBySeverityAndAcknowledgedFalseAndCreatedAtBefore(
             SeverityLevel severity,
             LocalDateTime time);
+    Alert findTopByPatientIdOrderByCreatedAtDesc(Long patientId);
+
 
 }
