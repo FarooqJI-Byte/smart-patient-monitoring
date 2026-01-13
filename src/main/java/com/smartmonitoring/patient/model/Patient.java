@@ -15,6 +15,11 @@ public class Patient {
     private String gender;
     private String contactNumber;
     private LocalDate admittedDate;
+    
+    @ManyToOne
+    @JoinColumn(name = "doctor_id")
+    private Doctor doctor;
+
 
     public Long getId() {
         return id;
