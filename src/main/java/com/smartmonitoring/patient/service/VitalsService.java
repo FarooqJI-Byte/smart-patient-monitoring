@@ -1,71 +1,112 @@
 package com.smartmonitoring.patient.service;
 
 import com.smartmonitoring.patient.dto.ResponseStructure;
-import com.smartmonitoring.patient.model.Patient;
-import com.smartmonitoring.patient.model.SeverityLevel;
+import com.smartmonitoring.patient.exception.NoDataFoundException;
+import com.smartmonitoring.patient.exception.PatientNotFoundException;
 import com.smartmonitoring.patient.model.Vitals;
 import com.smartmonitoring.patient.repository.PatientRepository;
 import com.smartmonitoring.patient.repository.VitalsRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class VitalsService {
 
     private final VitalsRepository vitalsRepository;
     private final PatientRepository patientRepository;
-    private final AlertService alertService;
 
     public VitalsService(VitalsRepository vitalsRepository,
-                         PatientRepository patientRepository,
-                         AlertService alertService) {
+                         PatientRepository patientRepository) {
         this.vitalsRepository = vitalsRepository;
         this.patientRepository = patientRepository;
-        this.alertService = alertService;
     }
 
-    public ResponseEntity<ResponseStructure<SeverityLevel>> recordVitals(
-            Long patientId, Vitals vitals) {
+    // 1️⃣ Latest vitals
+    public ResponseEntity<ResponseStructure<Vitals>> getLatestVitals(Long patientId) {
 
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found with id: " + patientId));
+        patientRepository.findById(patientId)
+                .orElseThrow(() ->
+                        new PatientNotFoundException("Patient not found with id: " + patientId));
 
-        vitals.setPatient(patient);
-        vitals.setRecordedAt(LocalDateTime.now());
-        vitalsRepository.save(vitals);
+        Vitals latest = vitalsRepository
+                .findTopByPatientIdOrderByRecordedAtDesc(patientId);
 
-        SeverityLevel severity = evaluateSeverity(vitals);
+        if (latest == null) {
+            throw new NoDataFoundException("No vitals recorded yet for this patient");
+        }
 
-        // create alert based on severity
-        alertService.createAlert(patient, severity);
-
-        ResponseStructure<SeverityLevel> response = new ResponseStructure<>();
+        ResponseStructure<Vitals> response = new ResponseStructure<>();
         response.setStatus(HttpStatus.OK.value());
-        response.setMessage("Vitals recorded successfully. Severity evaluated.");
-        response.setData(severity);
+        response.setMessage("Latest vitals fetched successfully");
+        response.setData(latest);
 
         return ResponseEntity.ok(response);
     }
 
-    private SeverityLevel evaluateSeverity(Vitals v) {
+    // 2️⃣ Vitals history (last N)
+    public ResponseEntity<ResponseStructure<List<Vitals>>> getVitalsHistory(
+            Long patientId, int limit) {
 
-        if (v.getHeartRate() < 40 || v.getHeartRate() > 130
-                || v.getOxygenLevel() < 85
-                || v.getSystolicBP() > 180
-                || v.getTemperature() > 39) {
-            return SeverityLevel.CRITICAL;
+        patientRepository.findById(patientId)
+                .orElseThrow(() ->
+                        new PatientNotFoundException("Patient not found with id: " + patientId));
+
+        List<Vitals> history = vitalsRepository
+                .findByPatientIdOrderByRecordedAtDesc(patientId, PageRequest.of(0, limit));
+
+        if (history.isEmpty()) {
+            throw new NoDataFoundException("No vitals history available for this patient");
         }
 
-        if (v.getHeartRate() < 60 || v.getHeartRate() > 100
-                || v.getOxygenLevel() < 92
-                || v.getSystolicBP() > 140
-                || v.getTemperature() > 37.5) {
-            return SeverityLevel.WARNING;
+        ResponseStructure<List<Vitals>> response = new ResponseStructure<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Vitals history fetched successfully");
+        response.setData(history);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // 3️⃣ Trend summary (based on last 2 records)
+    public ResponseEntity<ResponseStructure<Map<String, String>>> getVitalsTrend(Long patientId) {
+
+        patientRepository.findById(patientId)
+                .orElseThrow(() ->
+                        new PatientNotFoundException("Patient not found with id: " + patientId));
+
+        List<Vitals> lastTwo = vitalsRepository
+                .findByPatientIdOrderByRecordedAtDesc(patientId, PageRequest.of(0, 2));
+
+        if (lastTwo.size() < 2) {
+            throw new NoDataFoundException("Not enough vitals data to calculate trends");
         }
 
-        return SeverityLevel.NORMAL;
+        Vitals current = lastTwo.get(0);
+        Vitals previous = lastTwo.get(1);
+
+        Map<String, String> trends = new HashMap<>();
+        trends.put("heartRate", trend(current.getHeartRate(), previous.getHeartRate()));
+        trends.put("oxygenLevel", trend(current.getOxygenLevel(), previous.getOxygenLevel()));
+        trends.put("temperature", trend(current.getTemperature(), previous.getTemperature()));
+        trends.put("bloodPressure",
+                trend(current.getSystolicBP(), previous.getSystolicBP()));
+
+        ResponseStructure<Map<String, String>> response = new ResponseStructure<>();
+        response.setStatus(HttpStatus.OK.value());
+        response.setMessage("Vitals trend calculated successfully");
+        response.setData(trends);
+
+        return ResponseEntity.ok(response);
+    }
+
+    private String trend(Number current, Number previous) {
+        if (current.doubleValue() > previous.doubleValue()) return "UP";
+        if (current.doubleValue() < previous.doubleValue()) return "DOWN";
+        return "STABLE";
     }
 }
